@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Octanorm Stall 3D Viewer</title>
+
+<style>
+*{
+  box-sizing:border-box;
+}
+
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  font-family:Arial,Helvetica,sans-serif;
+  background:#11151a;
+}
+
+#viewer{
+  width:100%;
+  height:100%;
+}
+
+.ui{
+  position:fixed;
+  top:20px;
+  left:20px;
+  width:280px;
+  background:rgba(15,18,23,.94);
+  color:white;
+  padding:20px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 20px 50px rgba(0,0,0,.35);
+  z-index:10;
+}
+
+.ui h2{
+  margin:0 0 5px;
+  font-size:20px;
+}
+
+.ui p{
+  margin:0 0 18px;
+  color:#9da5af;
+  font-size:12px;
+}
+
+label{
+  display:block;
+  font-size:12px;
+  color:#9da5af;
+  margin-bottom:7px;
+}
+
+select{
+  width:100%;
+  background:#20252c;
+  color:white;
+  border:1px solid #3b424c;
+  padding:11px;
+  border-radius:8px;
+  outline:none;
+  font-size:14px;
+}
+
+.info{
+  margin-top:18px;
+  padding-top:15px;
+  border-top:1px solid #30353c;
+}
+
+.info div{
+  display:flex;
+  justify-content:space-between;
+  margin:8px 0;
+  font-size:13px;
+}
+
+.value{
+  color:#5ee7a1;
+  font-weight:bold;
+}
+
+.help{
+  position:fixed;
+  right:20px;
+  bottom:20px;
+  color:#aaa;
+  font-size:12px;
+  background:rgba(15,18,23,.85);
+  padding:10px 14px;
+  border-radius:8px;
+  z-index:10;
+}
+
+#loading{
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:white;
+  background:#11151a;
+  z-index:100;
+  font-size:18px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="loading">Loading 3D Stall...</div>
+
+<div class="ui">
+  <h2>Octanorm Stall</h2>
+  <p>Interactive 3D Exhibition Stall Viewer</p>
+
+  <label>SELECT STALL SIZE</label>
+
+  <select id="size">
+    <option value="2">2 × 2 m</option>
+    <option value="3" selected>3 × 3 m</option>
+    <option value="6">6 × 6 m</option>
+  </select>
+
+  <div class="info">
+    <div>
+      <span>Width</span>
+      <span class="value" id="width">3.00 m</span>
+    </div>
+
+    <div>
+      <span>Depth</span>
+      <span class="value" id="depth">3.00 m</span>
+    </div>
+
+    <div>
+      <span>Height</span>
+      <span class="value">2.50 m</span>
+    </div>
+
+    <div>
+      <span>Panel Size</span>
+      <span class="value">1.00 × 2.50 m</span>
+    </div>
+
+    <div>
+      <span>Panels</span>
+      <span class="value" id="panels">12</span>
+    </div>
+  </div>
+</div>
+
+<div class="help">
+  🖱 Drag = Rotate &nbsp; | &nbsp; Scroll = Zoom
+</div>
+
+<div id="viewer"></div>
+
+<script type="module">
+
+import * as THREE from
+'https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js';
+
+import { OrbitControls } from
+'https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/controls/OrbitControls.js';
+
+
+// --------------------------------------------------
+// BASIC SETUP
+// --------------------------------------------------
+
+const scene = new THREE.Scene();
+
+scene.background = new THREE.Color(0x11151a);
+
+const camera = new THREE.PerspectiveCamera(
+  45,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
+);
+
+camera.position.set(6,5,7);
+
+
+const renderer = new THREE.WebGLRenderer({
+  antialias:true
+});
+
+renderer.setPixelRatio(
+  Math.min(window.devicePixelRatio,2)
+);
+
+renderer.setSize(
+  window.innerWidth,
+  window.innerHeight
+);
+
+renderer.shadowMap.enabled = true;
+
+renderer.shadowMap.type =
+THREE.PCFSoftShadowMap;
+
+document
+.getElementById("viewer")
+.appendChild(renderer.domElement);
+
+
+// --------------------------------------------------
+// CONTROLS
+// --------------------------------------------------
+
+const controls = new OrbitControls(
+  camera,
+  renderer.domElement
+);
+
+controls.enableDamping = true;
+
+controls.dampingFactor = 0.06;
+
+controls.minDistance = 3;
+
+controls.maxDistance = 25;
+
+controls.maxPolarAngle =
+Math.PI / 2.05;
+
+
+// --------------------------------------------------
+// LIGHTING
+// --------------------------------------------------
+
+const ambient = new THREE.HemisphereLight(
+  0xffffff,
+  0x333333,
+  2.2
+);
+
+scene.add(ambient);
+
+
+const mainLight =
+new THREE.DirectionalLight(
+  0xffffff,
+  3
+);
+
+mainLight.position.set(
+  5,
+  10,
+  6
+);
+
+mainLight.castShadow = true;
+
+mainLight.shadow.mapSize.width = 2048;
+
+mainLight.shadow.mapSize.height = 2048;
+
+scene.add(mainLight);
+
+
+const fillLight =
+new THREE.DirectionalLight(
+  0xffffff,
+  1.2
+);
+
+fillLight.position.set(
+  -6,
+  5,
+  -4
+);
+
+scene.add(fillLight);
+
+
+// --------------------------------------------------
+// FLOOR
+// --------------------------------------------------
+
+const floorMaterial =
+new THREE.MeshStandardMaterial({
+  color:0x262b31,
+  roughness:.85,
+  metalness:.05
+});
+
+const floor =
+new THREE.Mesh(
+  new THREE.PlaneGeometry(40,40),
+  floorMaterial
+);
+
+floor.rotation.x = -Math.PI/2;
+
+floor.receiveShadow = true;
+
+scene.add(floor);
+
+
+// Grid
+
+const grid =
+new THREE.GridHelper(
+  40,
+  40,
+  0x444a52,
+  0x292e34
+);
+
+grid.position.y = .005;
+
+scene.add(grid);
+
+
+// --------------------------------------------------
+// STALL GROUP
+// --------------------------------------------------
+
+let stall =
+new THREE.Group();
+
+scene.add(stall);
+
+
+// --------------------------------------------------
+// MATERIALS
+// --------------------------------------------------
+
+const panelMaterial =
+new THREE.MeshStandardMaterial({
+  color:0xf2f2f2,
+  roughness:.7
+});
+
+
+const aluminiumMaterial =
+new THREE.MeshStandardMaterial({
+  color:0xaaaaaa,
+  metalness:.85,
+  roughness:.25
+});
+
+
+const blackMaterial =
+new THREE.MeshStandardMaterial({
+  color:0x111111,
+  roughness:.35
+});
+
+
+const counterMaterial =
+new THREE.MeshStandardMaterial({
+  color:0xffffff,
+  roughness:.4
+});
+
+
+// --------------------------------------------------
+// CLEAR OLD STALL
+// --------------------------------------------------
+
+function clearStall(){
+
+  while(stall.children.length > 0){
+
+    const obj =
+    stall.children[0];
+
+    obj.traverse(child=>{
+
+      if(child.geometry)
+        child.geometry.dispose();
+
+      if(child.material)
+        child.material.dispose();
+
+    });
+
+    stall.remove(obj);
+  }
+}
+
+
+// --------------------------------------------------
+// PANEL
+// --------------------------------------------------
+
+function createPanel(
+  x,
+  y,
+  z,
+  rotationY=0
+){
+
+  const panel =
+  new THREE.Mesh(
+    new THREE.BoxGeometry(
+      0.94,
+      2.5,
+      0.055
+    ),
+    panelMaterial
+  );
+
+  panel.position.set(
+    x,
+    y,
+    z
+  );
+
+  panel.rotation.y =
+  rotationY;
+
+  panel.castShadow = true;
+
+  panel.receiveShadow = true;
+
+  stall.add(panel);
+
+
+  // Aluminium vertical posts
+
+  const post =
+  new THREE.Mesh(
+    new THREE.CylinderGeometry(
+      .035,
+      .035,
+      2.58,
+      16
+    ),
+    aluminiumMaterial
+  );
+
+  post.position.set(
+    x,
+    1.29,
+    z
+  );
+
+  post.rotation.y =
+  rotationY;
+
+  post.castShadow = true;
+
+  stall.add(post);
+
+}
+
+
+// --------------------------------------------------
+// TOP BEAM
+// --------------------------------------------------
+
+function createBeam(
+  x,
+  y,
+  z,
+  length,
+  rotationY=0
+){
+
+  const beam =
+  new THREE.Mesh(
+    new THREE.BoxGeometry(
+      length,
+      .08,
+      .08
+    ),
+    aluminiumMaterial
+  );
+
+  beam.position.set(
+    x,
+    y,
+    z
+  );
+
+  beam.rotation.y =
+  rotationY;
+
+  beam.castShadow = true;
+
+  stall.add(beam);
+}
+
+
+// --------------------------------------------------
+// DIMENSION LINE
+// --------------------------------------------------
+
+function dimensionLine(
+  start,
+  end,
+  label,
+  color=0x55ffaa
+){
+
+  const group =
+  new THREE.Group();
+
+
+  const direction =
+  new THREE.Vector3()
+  .subVectors(end,start);
+
+  const length =
+  direction.length();
+
+
+  const geometry =
+  new THREE.BufferGeometry()
+  .setFromPoints([
+    start,
+    end
+  ]);
+
+
+  const line =
+  new THREE.Line(
+    geometry,
+    new THREE.LineBasicMaterial({
+      color:color
+    })
+  );
+
+  group.add(line);
+
+
+  // End markers
+
+  const markerGeo =
+  new THREE.BoxGeometry(
+    .025,
+    .12,
+    .025
+  );
+
+
+  const marker1 =
+  new THREE.Mesh(
+    markerGeo,
+    new THREE.MeshBasicMaterial({
+      color:color
+    })
+  );
+
+  marker1.position.copy(start);
+
+  group.add(marker1);
+
+
+  const marker2 =
+  new THREE.Mesh(
+    markerGeo,
+    new THREE.MeshBasicMaterial({
+      color:color
+    })
+  );
+
+  marker2.position.copy(end);
+
+  group.add(marker2);
+
+
+  // Label using canvas texture
+
+  const canvas =
+  document.createElement("canvas");
+
+  canvas.width = 512;
+  canvas.height = 128;
+
+  const ctx =
+  canvas.getContext("2d");
+
+  ctx.clearRect(
+    0,0,
+    canvas.width,
+    canvas.height
+  );
+
+  ctx.fillStyle =
+  "#55ffaa";
+
+  ctx.font =
+  "bold 52px Arial";
+
+  ctx.textAlign =
+  "center";
+
+  ctx.textBaseline =
+  "middle";
+
+  ctx.fillText(
+    label,
+    256,
+    64
+  );
+
+
+  const texture =
+  new THREE.CanvasTexture(
+    canvas
+  );
+
+  texture.needsUpdate = true;
+
+
+  const sprite =
+  new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map:texture,
+      transparent:true
+    })
+  );
+
+  sprite.scale.set(
+    1.4,
+    .35,
+    1
+  );
+
+
+  sprite.position
+  .copy(start)
+  .add(end)
+  .multiplyScalar(.5);
+
+
+  group.add(sprite);
+
+
+  stall.add(group);
+}
+
+
+// --------------------------------------------------
+// COUNTER
+// --------------------------------------------------
+
+function createCounter(
+  x,
+  z
+){
+
+  const base =
+  new THREE.Mesh(
+    new THREE.BoxGeometry(
+      1.0,
+      .85,
+      .5
+    ),
+    counterMaterial
+  );
+
+  base.position.set(
+    x,
+    .425,
+    z
+  );
+
+  base.castShadow = true;
+
+  stall.add(base);
+
+
+  const top =
+  new THREE.Mesh(
+    new THREE.BoxGeometry(
+      1.05,
+      .08,
+      .55
+    ),
+    blackMaterial
+  );
+
+  top.position.set(
+    x,
+    .89,
+    z
+  );
+
+  top.castShadow = true;
+
+  stall.add(top);
+}
+
+
+// --------------------------------------------------
+// LED SCREEN
+// --------------------------------------------------
+
+function createLED(
+  x,
+  z,
+  rotationY=0
+){
+
+  const screen =
+  new THREE.Mesh(
+    new THREE.BoxGeometry(
+      1.5,
+      .85,
+      .06
+    ),
+    new THREE.MeshStandardMaterial({
+      color:0x101820,
+      emissive:0x18394a,
+      emissiveIntensity:1
+    })
+  );
+
+  screen.position.set(
+    x,
+    1.65,
+    z
+  );
+
+  screen.rotation.y =
+  rotationY;
+
+  screen.castShadow = true;
+
+  stall.add(screen);
+
+
+  // LED inner surface
+
+  const display =
+  new THREE.Mesh(
+    new THREE.PlaneGeometry(
+      1.35,
+      .7
+    ),
+    new THREE.MeshBasicMaterial({
+      color:0x0c3546
+    })
+  );
+
+  display.position.set(
+    x,
+    1.65,
+    z - .035
+  );
+
+  display.rotation.y =
+  rotationY;
+
+  stall.add(display);
+}
+
+
+// --------------------------------------------------
+// CREATE STALL
+// --------------------------------------------------
+
+function createStall(size){
+
+  clearStall();
+
+
+  const height = 2.5;
+
+  const half =
+  size / 2;
+
+
+  // -------------------------
+  // BACK WALL
+  // -------------------------
+
+  for(
+    let x = -half + .5;
+    x < half;
+    x += 1
+  ){
+
+    createPanel(
+      x,
+      1.25,
+      -half,
+      0
+    );
+  }
+
+
+  // -------------------------
+  // LEFT WALL
+  // -------------------------
+
+  for(
+    let z = -half + .5;
+    z < half;
+    z += 1
+  ){
+
+    createPanel(
+      -half,
+      1.25,
+      z,
+      Math.PI/2
+    );
+  }
+
+
+  // -------------------------
+  // RIGHT WALL
+  // -------------------------
+
+  if(size >= 3){
+
+    for(
+      let z = -half + .5;
+      z < half;
+      z += 1
+    ){
+
+      createPanel(
+        half,
+        1.25,
+        z,
+        Math.PI/2
+      );
+    }
+  }
+
+
+  // -------------------------
+  // TOP BEAMS
+  // -------------------------
+
+  createBeam(
+    0,
+    height,
+    -half,
+    size
+  );
+
+  createBeam(
+    -half,
+    height,
+    0,
+    size,
+    Math.PI/2
+  );
+
+
+  if(size >= 3){
+
+    createBeam(
+      half,
+      height,
+      0,
+      size,
+      Math.PI/2
+    );
+  }
+
+
+  // -------------------------
+  // COUNTER
+  // -------------------------
+
+  createCounter(
+    0,
+    -half + .65
+  );
+
+
+  // -------------------------
+  // LED SCREEN
+  // -------------------------
+
+  createLED(
+    0,
+    -half - .04
+  );
+
+
+  // -------------------------
+  // DIMENSIONS
+  // -------------------------
+
+  dimensionLine(
+    new THREE.Vector3(
+      -half,
+      .15,
+      half + .35
+    ),
+
+    new THREE.Vector3(
+      half,
+      .15,
+      half + .35
+    ),
+
+    size.toFixed(2) + " m"
+  );
+
+
+  dimensionLine(
+    new THREE.Vector3(
+      half + .35,
+      .15,
+      -half
+    ),
+
+    new THREE.Vector3(
+      half + .35,
+      .15,
+      half
+    ),
+
+    size.toFixed(2) + " m"
+  );
+
+
+  dimensionLine(
+    new THREE.Vector3(
+      -half - .35,
+      0,
+      -half
+    ),
+
+    new THREE.Vector3(
+      -half - .35,
+      height,
+      -half
+    ),
+
+    "2.50 m"
+  );
+
+
+  // -------------------------
+  // CENTER STALL
+  // -------------------------
+
+  stall.position.y = 0;
+
+
+  // Camera target
+
+  controls.target.set(
+    0,
+    1.1,
+    0
+  );
+
+
+  camera.position.set(
+    size * 1.8,
+    size * 1.35,
+    size * 1.8
+  );
+
+  controls.update();
+
+
+  // Information
+
+  document.getElementById(
+    "width"
+  ).innerText =
+  size.toFixed(2) + " m";
+
+
+  document.getElementById(
+    "depth"
+  ).innerText =
+  size.toFixed(2) + " m";
+
+
+  const panelCount =
+  Math.round(size * 4);
+
+  document.getElementById(
+    "panels"
+  ).innerText =
+  panelCount;
+}
+
+
+// --------------------------------------------------
+// SELECTOR
+// --------------------------------------------------
+
+const selector =
+document.getElementById("size");
+
+
+selector.addEventListener(
+  "change",
+  ()=>{
+    createStall(
+      Number(selector.value)
+    );
+  }
+);
+
+
+// --------------------------------------------------
+// START
+// --------------------------------------------------
+
+createStall(3);
+
+document.getElementById(
+  "loading"
+).style.display="none";
+
+
+// --------------------------------------------------
+// RESIZE
+// --------------------------------------------------
+
+window.addEventListener(
+  "resize",
+  ()=>{
+
+    camera.aspect =
+    window.innerWidth /
+    window.innerHeight;
+
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(
+      window.innerWidth,
+      window.innerHeight
+    );
+
+  }
+);
+
+
+// --------------------------------------------------
+// ANIMATION
+// --------------------------------------------------
+
+function animate(){
+
+  requestAnimationFrame(
+    animate
+  );
+
+  controls.update();
+
+  renderer.render(
+    scene,
+    camera
+  );
+}
+
+animate();
+
+</script>
+
+</body>
+</html>
