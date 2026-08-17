@@ -161,14 +161,20 @@ select{
 
 <div id="viewer"></div>
 
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js"
+  }
+}
+</script>
+
 <script type="module">
 
-import * as THREE from
-'https://unpkg.com/three@0.164.1/build/three.module.js';
+import * as THREE from 'three';
 
 import { OrbitControls } from
-'https://unpkg.com/three@0.164.1/examples/jsm/controls/OrbitControls.js';
-
+'https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/controls/OrbitControls.js';
 // --------------------------------------------------
 // BASIC SETUP
 // --------------------------------------------------
